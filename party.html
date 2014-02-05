@@ -1,0 +1,166 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>Sample Three.js</title>
+		<script src="../party/three.js"></script>
+		<style>
+			#container {
+				background: #000;
+			}
+
+			body {
+				margin: 0;
+			}
+
+			form {
+			}
+		</style>
+	</head>
+	<body>
+		<form>
+			<fieldset id="camera_rotation"></fieldset>
+		</form>
+		<div id="container"></div>
+	</body>
+	<script type="text/javascript">
+	var WIDTH = innerWidth,
+		HEIGHT = innerHeight,
+		VIEW_ANGLE = 60,
+	    ASPECT = WIDTH / HEIGHT,
+	    NEAR = 1,
+	    FAR = 10000;
+
+	var d = 600,
+		matrixWidth = 80,
+		matrixHeight = 80,
+		speed = Math.PI/24,
+		period = 32;
+
+	var scene = new THREE.Scene();
+
+	var particles = new THREE.Geometry(),
+	/*		material = new THREE.ParticleBasicMaterial({
+	 color: 0xFFFFFF,
+	 size: 8,
+	 map: THREE.ImageUtils.loadTexture(
+	 "4.png"
+	 ),
+	 blending: THREE.AdditiveAlphaBlending,
+	 transparent: true
+	 });*/
+		material = new THREE.ParticleCanvasMaterial( {
+				color: 0xffffff,
+				program: function ( context ) {
+					context.beginPath();
+					context.arc( 0, 0, 1, 0, PI2, true );
+					context.fill();
+
+				}
+			});
+
+	var dx = d/matrixWidth;
+	var dy = d/matrixHeight;
+	for(var i = -d/2; i < d/2; i += dx)
+		for(var j = -d/2; j < d/2; j += dy) {
+			var particle = new THREE.Particle(material);
+			with (particle.position) { x = i; y = j }
+			particles.vertices.push(particle);
+		}
+
+	var particleSystem = new THREE.ParticleSystem(
+			particles,
+			material);
+	particleSystem.sortParticles = true;
+	scene.add(particleSystem);
+
+	var camera = new THREE.PerspectiveCamera(  VIEW_ANGLE,
+			ASPECT,
+			NEAR,
+			FAR  );
+	with (camera.position) {
+		x = d;
+		y = -d;
+		z = d/3;
+	}
+	camera.rotation.x = Math.PI/2;
+	camera.rotation.y = Math.PI/4;
+//	camera.lookAt(scene.position);
+	camera.rotation.z = 0;
+	scene.add(camera);
+
+	var renderer = new THREE.WebGLRenderer();
+	renderer.setClearColor(new THREE.Color(0, 1));
+	renderer.setSize(WIDTH, HEIGHT);
+	container.appendChild(renderer.domElement);
+
+	function distribute() {
+		var r = Math.random();
+		return Math.pow(r, 2);
+	}
+
+	var s = 0;
+	var p = Math.PI/period;
+
+
+
+	function animate() {
+		particleSystem.rotation.z += 0.001;
+		for(var i = 0; i < matrixWidth; i++)
+			for(var j = 0; j < matrixHeight; j++) {
+				var particle = particles.vertices[i*matrixHeight + j];
+				with (particle.position) {
+					var height = Math.sin(p * Math.sqrt(x*x + y*y) - s);
+					z = 8 * height;
+				}
+				particle.scale.x = particle.scale.y = 1 + height;
+			}
+		s += speed;
+		particleSystem.geometry.__dirtyVertices = true;
+		renderer.render(scene, camera);
+		requestAnimationFrame(animate);
+	}
+
+	function onResize() {
+		renderer.setSize(innerWidth, innerHeight);
+		camera.aspect = innerWidth/innerHeight;
+		camera.updateProjectionMatrix();
+		with (container.style) {
+			width = innerWidth + 'px';
+			height = innerHeight + 'px';
+		}
+	}
+
+	onload = function () {
+		var coordinates = ['x', 'y', 'z'];
+		for(var i in coordinates) {
+			var input = document.createElement('input');
+			input.type = 'range';
+			input.max = (Math.PI/2).toString();
+			input.step = (Math.PI/256).toString();
+			input.dataset.coordinate = coordinates[i];
+//			input.onclick = rotate;
+			input.onmousedown = function() {
+				this.onmousemove = rotate;
+			};
+			input.onmouseup = function() {
+				delete this.onmousemove;
+			};
+			camera_rotation.appendChild(input);
+		}
+//		onResize();
+		particleSystem.position.z = d/16;
+		requestAnimationFrame(animate);
+	};
+
+//	onresize = onResize;
+
+	function rotate(e) {
+		particleSystem.rotation[this.dataset.coordinate] = parseFloat(this.value);
+		camera.updateProjectionMatrix();
+	}
+
+
+
+	</script>
+</html>

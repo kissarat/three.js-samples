@@ -1,0 +1,175 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>Sample Three.js</title>
+		<script src="three.js"></script>
+		<style>
+			#container {
+				background: #000;
+			}
+
+			body {
+				margin: 0;
+			}
+		</style>
+	</head>
+	<body>
+
+		<div id="container">
+
+
+		</div>
+
+	</body>
+	<script type="text/javascript">
+	var WIDTH = innerWidth,
+		HEIGHT = innerHeight,
+		VIEW_ANGLE = 45,
+	    ASPECT = WIDTH / HEIGHT,
+	    NEAR = 0.1,
+	    FAR = 10000;
+
+	var simulation_time = 1200000,
+		mass_ratio = 3,
+		mass_distribution = 2,
+		object_count = 100;
+	var m = 3,
+		s = 3000,
+		p = 100,
+		g = 6,
+		t = simulation_time;
+
+	var last = Date.now() - 1000000;
+	var d;
+	var objects = [];
+	var iteration = 5;
+
+	var scene = new THREE.Scene();
+
+	var camera = new THREE.PerspectiveCamera(  VIEW_ANGLE,
+			ASPECT,
+			NEAR,
+			FAR  );
+	camera.position.z = 300;
+	scene.add(camera);
+
+	var l1 = new THREE.PointLight( 0xFF0000 );
+	l1.position = { x:0, y:100, z:-50 };
+	scene.add(l1);
+	var l2 = new THREE.PointLight( 0xFFF000 );
+	l2.position = { x:86, y:0, z:-50 };
+	scene.add(l2);
+	var l3 = new THREE.PointLight( 0x00FF00 );
+	l3.position = { x:-86, y:0, z:-50 };
+	scene.add(l3);
+	var l4 = new THREE.PointLight( 0x0000FF );
+	l4.position = { x:0, y:0, z:100 };
+	scene.add(l4);
+
+	var renderer = new THREE.WebGLRenderer({ antialias: true });
+	renderer.setSize(WIDTH, HEIGHT);
+	container.appendChild(renderer.domElement);
+
+	mass_ratio = 1/mass_ratio;
+	function createObject() {
+		var mass = mass_ratio + Math.pow(Math.random(), mass_distribution)*(1 - mass_ratio);
+		var sphereMaterial = new THREE.MeshLambertMaterial({
+			color: 0xFFFFFF
+		});
+		var o = new THREE.Mesh(
+				new THREE.SphereGeometry(
+					mass * 6,
+					4 + Math.round(mass * 12),
+					4 + Math.round(mass * 12)),
+				sphereMaterial);
+		o.speed = {
+			x: s/2 - Math.random()*s,
+			y: s/2 - Math.random()*s,
+			z: s/2 - Math.random()*s
+		};
+		o.mass = mass * m;
+		with (o.position) {
+			x = p/2 - Math.random()*p;
+			y = p/2 - Math.random()*p;
+			z = p/2 - Math.random()*p;
+		}
+		objects.push(o);
+		scene.add(o);
+		t += simulation_time / 40 * objects.length;
+	}
+
+	function animate() {
+		var now = Date.now();
+		d = now - last;
+		d /= t;
+		last = now;
+
+//		if (iteration > 0)
+//			iteration--;
+//		else {
+//			createObject();
+//			iteration = /*Math.random() **/ 100;
+//		}
+
+		for(var i in objects) {
+			var ax = 0, ay = 0, az = 0;
+			var dst = objects[i];
+			for(var j in objects) {
+				var src = objects[j];
+				if (src == dst)
+					continue;
+				var dx = src.position.x - dst.position.x,
+					dy = src.position.y - dst.position.y,
+					dz = src.position.z - dst.position.z;
+				var gm = g * dst.mass * src.mass;
+				ax += Math.pow(dx, 2) / gm * (dx > 0 ? 1 : -1);
+				ay += Math.pow(dy, 2) / gm * (dy > 0 ? 1 : -1);
+				az += Math.pow(dz, 2) / gm * (dz > 0 ? 1 : -1);
+			}
+			dst.speed.x += ax;
+			dst.speed.y += ay;
+			dst.speed.z += az;
+		}
+
+		for(var i in objects) with (objects[i]) {
+			position.x += speed.x*d;
+			position.y += speed.y*d;
+			position.z += speed.z*d;
+		}
+		renderer.render(scene, camera);
+		requestAnimationFrame(animate);
+	}
+
+	function onResize() {
+		renderer.setSize(innerWidth, innerHeight);
+		camera.aspect = innerWidth/innerHeight;
+		camera.updateProjectionMatrix();
+		with (container.style) {
+			width = innerWidth + 'px';
+			height = innerHeight + 'px';
+		}
+	}
+
+	onload = function () {
+		//var deltas = [];
+		for(var i=0; i<object_count; i++) {
+			createObject();
+		}
+		animate();
+		onResize();
+	};
+
+	onresize = onResize;
+
+//	onmousemove = function(e) {
+//		var mouseX = e.x - innerWidth/2,
+//			mouseY = e.y - innerHeight/2;
+//		var hypotenuse = Math.sqrt(Math.pow(mouseX, 2) + Math.pow(mouseY, 2));
+//		camera.position.x = -200*mouseX/hypotenuse * (mouseX > 0 ? 1 : -1);
+//		camera.position.y = 200*mouseY/hypotenuse * (mouseY > 0 ? 1 : -1);
+//		camera.lookAt(scene.position);
+//		camera.updateProjectionMatrix();
+//	}
+	</script>
+</html>

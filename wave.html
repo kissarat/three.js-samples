@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<script src="../three/build/three.js"></script>
+	<!--<script src="../three/examples/js/controls/OrbitControls.js"></script>-->
+	<script src="../three/examples/js/controls/TransformControls.js"></script>
+	<style type="text/css">
+		#container {
+			background-color: black;
+			width: 1000px;
+			height: 1000px;
+		}
+
+		body {
+			margin: 0;
+		}
+	</style>
+</head>
+<body>
+<form id="properties">
+</form>
+<div id="container"></div>
+</body>
+<script>
+	var WIDTH = 1000,
+		HEIGHT = 1000,
+		widthSegments = 128,
+		heightSegments = 128,
+		segmentWidth = 2,
+		segmentHeight = 2;
+
+	var phase = 0,
+		speed = 1;
+
+	var sphere = new THREE.SphereGeometry(10, 24, 24);
+	var material = new THREE.MeshBasicMaterial({
+		color: 0xDDDDDD
+		,vertexColors: THREE.FaceColors
+//		,wireframe: true
+//		,opacity: 0.8
+	});
+	var sphereMesh = new THREE.Mesh(sphere, material);
+	sphereMesh.position.z = 40;
+	var planeGeo = new THREE.PlaneGeometry(
+			segmentWidth * widthSegments,
+			segmentHeight * heightSegments,
+			widthSegments, heightSegments);
+	var plane = new THREE.Mesh(planeGeo, material);
+	//planeMesh.rotation.x = Math.PI/2;
+
+	var	camera = new THREE.PerspectiveCamera(45, 1, 1, 10000);
+	with (camera) {
+		position.y = -450;
+		position.z = 400;
+		rotation.x = Math.PI/4;
+//		quaternion = new THREE.Quaternion(0, 0, 0, 1);
+	}
+
+	var l1 = new THREE.SpotLight(0xFF0000);
+	with (l1) {
+		position.set(200, 200, 200);
+		castShadow = true;
+		shadowDarkness = 0.5;
+		shadowMapWidth = 1000;
+		shadowMapHeight = 1000;
+		shadowCameraNear = 200;
+		shadowCameraFar = 500;
+		shadowCameraFov = 20;
+		shadowBias = -0.00022;
+//		shadowCameraVisible = true;
+	}
+
+	var objectControl = new THREE.TransformControls(camera, container);
+	with (objectControl) {
+		addEventListener('change', animate);
+		attach(plane);
+		scale = 0.65;
+//		autoRotate = true;
+	}
+//	var sceneControl = new THREE.EditorControls(camera, container);
+//	with (sceneControl) {
+//		addEventListener('change', function() {
+//			objectControl.update();
+//			camera.updateProjectionMatrix();
+//		});
+////		autoRotate = true;
+//	}
+
+	var scene = new THREE.Scene();
+	with(scene) {
+		add(l1);
+		add(camera);
+//		add(sphereMesh);
+		add(plane);
+		add(objectControl.gizmo);
+//		add(sceneControl.gizmo);
+//		add(new THREE.GridHelper(200,10));
+//		add(new THREE.ShadowVolume(planeMesh));
+	}
+
+	var renderer = new THREE.WebGLRenderer({antialias: false});
+	with (renderer) {
+		shadowMapEnabled = true;
+		shadowMapSoft = true;
+		setSize(WIDTH, HEIGHT);
+	}
+
+	function animate() {
+//		plane.rotation.z -= 0.005;
+		for(var i=0; i<plane.geometry.vertices.length; i++){
+			var verticle = plane.geometry.vertices[i];
+			with (verticle) {
+				var d = Math.sqrt(x*x + y*y);
+				z = Math.sin(d/2 + phase) * 6/(1 + d/15);
+			}
+		}
+
+		for(var i=0; i<plane.geometry.faces.length; i++){
+			var face = plane.geometry.faces[i];
+			with (face) {
+				//var c = centroid.normalize();
+				color.setRGB(0x88 + Math.abs(centroid.x), 0xFF, 0xFF);
+			}
+		}
+
+		phase += speed;
+//		planeGeo.__dirtyVertices = true;
+		objectControl.update();
+		renderer.render(scene, camera);
+		requestAnimationFrame(animate)
+	}
+
+	onload = function() {
+		container.appendChild(renderer.domElement);
+		animate();
+	};
+
+	function rad_to_deg(radians) {
+		return Math.round(180*radians/Math.PI);
+	}
+
+	function rot(o) {
+		return rad_to_deg(o.x) + 'x'
+			 + rad_to_deg(o.y) + 'x'
+			 + rad_to_deg(o.z);
+	}
+
+	onmousemove = function() {
+		document.title = rot(camera.rotation);
+	}
+</script>
+</html>
