@@ -119,9 +119,11 @@ World.prototype = {
     const box = new THREE.BoxGeometry(1, 1, 1);
     var cube = new THREE.Mesh(box, material);
     this.scene.add(cube);
-    cube.x = 0
-    cube.y = 0
-    cube.z = 0
+    cube.userData = {
+      x: 0,
+      y: 0,
+      z: 0
+    }
     return cube
   },
 
@@ -145,7 +147,6 @@ World.prototype = {
   },
 
   getAddress: function (x, y, z) {
-    console.log(x, y, z)
     return this.cubes[x][y][z]
   },
 
@@ -183,8 +184,7 @@ World.prototype = {
       const array = [];
       [C1, C2, C3].forEach(function (n) {
         if ((n >> 4) & rate) {
-          console.log(axis, rate)
-          world.setGroup(axis, rate, array)
+          world.setGroup(axis, Math.log2(rate), array)
         }
       })
       array.forEach(function (cube) {
@@ -192,16 +192,16 @@ World.prototype = {
       })
       this.scene.add(group)
       function updateGroup(time) {
-        if (time < 1) {
-          group.rotation[axis] = time * angle
-        }
-        else {
+        group.rotation[axis] = time * angle
+        if (time >= 1) {
+          this.scene.remove(group)
           array.forEach(function (cube) {
-            cube[axis] = (cube[axis] + two) % 4
-            cube.rotation[axis] = cube[axis] * 90 * deg
+            cube.userData[axis] = (cube.userData[axis] + two) % 4
+            axises.forEach(function (ax) {
+              cube.rotation[ax] = cube.userData[ax] * 90 * deg
+            })
             world.scene.add(cube)
           })
-          this.scene.remove(group)
         }
       }
 
@@ -226,9 +226,9 @@ const AZ = 3
 const AN1 = 1 << 2
 const AN2 = 2 << 2
 const AN3 = 3 << 2
-const C1 = 1 << 5
-const C2 = 1 << 6
-const C3 = 1 << 7
+const C1 = 1 << 4
+const C2 = 1 << 5
+const C3 = 1 << 6
 const C12 = C1 | C2
 const C23 = C2 | C3
 const C13 = C1 | C3
