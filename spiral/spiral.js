@@ -1,5 +1,5 @@
 const deg = Math.PI / 180
-const ROTATE = 1 / 3
+const ROTATE = 1 / 8
 const PI2 = 2 * Math.PI
 
 const nameCounter = {}
@@ -33,9 +33,9 @@ class Cube extends ObjectModel {
     const angle = world.getAngle(this.n / 10)
     // const a = world.getAngle(this.a * this.n / 2)
     mesh.position.x = Math.cos(angle) * this.l
-    mesh.position.z = Math.sin(angle) * this.l
-    mesh.position.y = this.h * Math.abs(Math.cos(world.getAngle(1/4))) / 2
-    mesh.rotation.y = -angle
+    mesh.position.y = Math.sin(angle) * this.l
+    mesh.position.z = this.h * Math.abs(Math.cos(world.getAngle(1/4))) / 2
+    mesh.rotation.z = angle
   }
 }
 
@@ -55,9 +55,15 @@ class World extends ObjectModel {
     this.camera = camera
     this.renderer = renderer
 
-    const gridHelper = new THREE.GridHelper(10, 10);
-    this.scene.add(gridHelper);
+    if (this.grid) {
+      const gridHelper = new THREE.GridHelper(10, 10);
+      this.scene.add(gridHelper);
+    }
 
+    this.createPlane()
+    this.createLight(0xff0000, 10, 10, 10)
+    this.createLight(0x00ff00, 10, -10, 10)
+    this.createLight(0x0000ff, -10, -10, 10)
     this.init()
 
     this.models = []
@@ -65,7 +71,7 @@ class World extends ObjectModel {
     for (let n = 0; n < amount; n++) {
       this.models.push(new Cube({
         n: amount - n,
-        h: n,
+        h: 1 + n,
         l: (amount - n) / 2,
         a: Math.random(),
         size: 0.3 + 0.7 * (1 - n / amount)
@@ -76,9 +82,30 @@ class World extends ObjectModel {
 
   createScene() {
     this.scene = new THREE.Scene();
-    this.scene.rotation.x = 45 * deg
-    this.scene.rotation.y = 45 * deg
+    this.scene.rotation.x = - 45 * deg
+    // this.scene.rotation.y = 45 * deg
     // this.scene.rotation.z = -45 * deg
+  }
+
+  createLight(color, x, y, z) {
+    const light = new THREE.PointLight( color, 6, 100 );
+    light.position.set( x, y, z );
+    light.castShadow = true;
+
+    //Set up shadow properties for the light
+    light.shadow.mapSize.width = 512;  // default
+    light.shadow.mapSize.height = 512; // default
+    light.shadow.camera.near = 0.5;       // default
+    light.shadow.camera.far = 500      // default
+
+    this.scene.add( light );
+  }
+
+  createPlane() {
+    const geometry = new THREE.PlaneGeometry( 15, 15, 15 );
+    const material = new THREE.MeshStandardMaterial( { color: 0x002200, side: THREE.DoubleSide } )
+    const plane = new THREE.Mesh( geometry, material );
+    this.scene.add( plane );
   }
 
   get time() {
@@ -110,9 +137,7 @@ class World extends ObjectModel {
   update() {
     for (const model of this.models) {
       if (!model.vid) {
-        const material = [0xff3333, 0xff8800, 0xffff33, 0x33ff33, 0x3333ff, 0x8833ff].map(function (color) {
-          return new THREE.MeshBasicMaterial({color: color})
-        })
+        const material = new THREE.MeshStandardMaterial( { color: 0x666666 } )
         const box = new THREE.BoxGeometry(model.size, model.size, model.size);
         const cube = new THREE.Mesh(box, material);
         cube.name = model.name
@@ -122,6 +147,7 @@ class World extends ObjectModel {
       }
       model.update(this, this.scene.getObjectById(model.vid))
     }
+    this.scene.rotation.z = this.getAngle(1/4)
   }
 
   render() {
